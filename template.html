@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <title>GitHub Summary</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+
+  <style>
+    .pr-card {
+      width: 30rem;
+      height: 14rem;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <div class="container-fluid">
+    <div class="container-fluid py-4">
+      {% for pr in prs|rejectattr("isDraft") %}
+      <div class="card d-inline-flex m-1 pr-card">
+        <div class="card-body">
+          <h5 class="card-title">{{ pr.title }}</h5>
+          <p class="card-text"><img alt="{{ pr.author.name }}" width="40" height="40" src="{{ pr.author.avatarUrl }}"> {{ pr.author.name }}</p>
+          <p>Created {{ pr.createdStr }}</p>
+          <a href="{{ pr.url }}">{{ pr.url }}</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <h2>Drafts:</h2>
+    <div class="container-fluid py-4">
+      {% for pr in prs|selectattr("isDraft") %}
+      <div class="card d-inline-flex m-1 pr-card">
+        <div class="card-body">
+          <h5 class="card-title">{{ pr.title }}</h5>
+          <p class="card-text"><img alt="{{ pr.author.name }}" width="40" height="40" src="{{ pr.author.avatarUrl }}"> {{ pr.author.name }}</p>
+          <p>Created {{ pr.createdStr }}</p>
+          <a href="{{ pr.url }}">{{ pr.url }}</a>
+          <p><span class="badge bg-secondary">Draft</span></p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</main>
+</body>
+</html>
