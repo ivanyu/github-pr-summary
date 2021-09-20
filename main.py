@@ -11,27 +11,29 @@ from jinja2 import Environment, FileSystemLoader
 PR = Dict[str, Any]
 
 
-def fetch_prs(*, repos: List[Tuple[str, str]]) -> List[PR]:
+def fetch_prs(*, state: str, order_direction: str, repos: List[Tuple[str, str]]) -> List[PR]:
     query = """
-        query ($org: String!, $name: String!) {
-          repository(owner: $org, name: $name) {
-            pullRequests(first: 100, states: OPEN, orderBy: {field: CREATED_AT, direction: ASC}) {
-              nodes {
-                title, url, createdAt, isDraft,
-                author {
-                  ... on User {
-                    login, name, avatarUrl
-                  }
+      query ($org: String!, $name: String!, $state: PullRequestState!, $orderDirection: OrderDirection!) {
+        repository(owner: $org, name: $name) {
+          pullRequests(first: 100, states: [$state], orderBy: {field: CREATED_AT, direction: $orderDirection}) {
+            nodes {
+              title, url, createdAt, mergedAt, isDraft,
+              author {
+                ... on User {
+                  login, name, avatarUrl
                 }
               }
             }
           }
         }
+      }
     """
     result = []
     for org, repo in repos:
         output = check_output(["gh", "api", "graphql", "--paginate",
-                               "-F", f"org={org}", "-F", f"name={repo}", "-f", f"query={query}"])
+                               "-F", f"org={org}", "-F", f"name={repo}",
+                               "-F", f"state={state}", "-F", f"orderDirection={order_direction}",
+                               "-f", f"query={query}"])
         prs = json.loads(output)["data"]["repository"]["pullRequests"]["nodes"]
         result.extend(prs)
 
@@ -46,23 +48,41 @@ def filter_prs(*, users: List[str], prs: List[PR]) -> List[PR]:
         return prs
 
 
+def keep_recently_merged(*, prs: List[PR], days: int) -> List[PR]:
+    now = datetime.utcnow()
+    result = []
+    for pr in prs:
+        merged_at = datetime.fromisoformat(pr["mergedAt"].rstrip("Z"))
+        merged_days_ago = (now - merged_at).days
+        if merged_days_ago < days:
+            result.append(pr)
+    return result
+
+
 def enrich(*, prs: List[PR]) -> None:
+    def days_to_string(days: int) -> str:
+        if days == 0:
+            return "recently"
+        elif days % 10 == 1 and days != 11:
+            return f"{days} day ago"
+        else:
+            return f"{days} days ago"
+
     now = datetime.utcnow()
     for pr in prs:
         created_at = datetime.fromisoformat(pr["createdAt"].rstrip("Z"))
-        created_days_ago = (now - created_at).days
-        if created_days_ago == 0:
-            pr["createdStr"] = "recently"
-        elif created_days_ago % 10 == 1 and created_days_ago != 11:
-            pr["createdStr"] = f"{created_days_ago} day ago"
-        else:
-            pr["createdStr"] = f"{created_days_ago} days ago"
+        pr["createdStr"] = days_to_string((now - created_at).days)
+
+        merged_at = pr.get("mergedAt")
+        if merged_at is not None:
+            merged_at = datetime.fromisoformat(merged_at.rstrip("Z"))
+            pr["mergedStr"] = days_to_string((now - merged_at).days)
 
 
-def render(*, prs: List[PR]) -> str:
+def render(*, open_prs: List[PR], merged_prs: List[PR]) -> str:
     env = Environment(loader=FileSystemLoader("."))
     tpl = env.get_template("template.html")
-    return tpl.render(prs=prs, generated_at=datetime.utcnow())
+    return tpl.render(open_prs=open_prs, merged_prs=merged_prs, generated_at=datetime.utcnow())
 
 
 if __name__ == "__main__":
@@ -80,7 +100,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    prs = fetch_prs(repos=args.repos)
-    prs = filter_prs(users=args.users, prs=prs)
-    enrich(prs=prs)
-    print(render(prs=prs))
+    open_prs = fetch_prs(repos=args.repos, state="OPEN", order_direction="ASC")
+    open_prs = filter_prs(users=args.users, prs=open_prs)
+    enrich(prs=open_prs)
+
+    merged_prs = fetch_prs(repos=args.repos, state="MERGED", order_direction="DESC")
+    merged_prs = filter_prs(users=args.users, prs=merged_prs)
+    merged_prs = keep_recently_merged(prs=merged_prs, days=3)
+    enrich(prs=merged_prs)
+
+    print(render(open_prs=open_prs, merged_prs=merged_prs))

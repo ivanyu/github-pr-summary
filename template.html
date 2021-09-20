@@ -30,8 +30,9 @@
 
 <main>
   <div class="container-fluid">
+    <h2>Open:</h2>
     <div class="container-fluid py-4">
-      {% for pr in prs|rejectattr("isDraft") %}
+      {% for pr in open_prs|rejectattr("isDraft") %}
       <div class="card d-inline-flex m-1 pr-card">
         <div class="card-body">
           <h5 class="card-title">{{ pr.title }}</h5>
@@ -42,9 +43,10 @@
       </div>
       {% endfor %}
     </div>
+
     <h2>Drafts:</h2>
     <div class="container-fluid py-4">
-      {% for pr in prs|selectattr("isDraft") %}
+      {% for pr in open_prs|selectattr("isDraft") %}
       <div class="card d-inline-flex m-1 pr-card">
         <div class="card-body">
           <h5 class="card-title">{{ pr.title }}</h5>
@@ -52,6 +54,20 @@
           <p>Created {{ pr.createdStr }}</p>
           <a href="{{ pr.url }}">{{ pr.url }}</a>
           <p><span class="badge bg-secondary">Draft</span></p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <h2>Recently merged:</h2>
+    <div class="container-fluid py-4">
+      {% for pr in merged_prs %}
+      <div class="card d-inline-flex m-1 pr-card">
+        <div class="card-body">
+          <h5 class="card-title">{{ pr.title }}</h5>
+          <p class="card-text"><img alt="{{ pr.author.name }}" width="40" height="40" src="{{ pr.author.avatarUrl }}"> {{ pr.author.name }}</p>
+          <p>Created {{ pr.createdStr }}, merged {{ pr.mergedStr }}</p>
+          <a href="{{ pr.url }}">{{ pr.url }}</a>
         </div>
       </div>
       {% endfor %}
