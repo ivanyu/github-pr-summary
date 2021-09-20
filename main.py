@@ -47,7 +47,7 @@ def filter_prs(*, users: List[str], prs: List[PR]) -> List[PR]:
 
 
 def enrich(*, prs: List[PR]) -> None:
-    now = datetime.now()
+    now = datetime.utcnow()
     for pr in prs:
         created_at = datetime.fromisoformat(pr["createdAt"].rstrip("Z"))
         created_days_ago = (now - created_at).days
@@ -62,7 +62,7 @@ def enrich(*, prs: List[PR]) -> None:
 def render(*, prs: List[PR]) -> str:
     env = Environment(loader=FileSystemLoader("."))
     tpl = env.get_template("template.html")
-    return tpl.render(prs=prs)
+    return tpl.render(prs=prs, generated_at=datetime.utcnow())
 
 
 if __name__ == "__main__":

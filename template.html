@@ -16,6 +16,15 @@
   </style>
 </head>
 <body>
+
+<nav class="navbar navbar-light bg-light">
+  <div class="container-fluid">
+    <span class="navbar-text">
+      Generated: <span id="generatedAt"></span>
+    </span>
+  </div>
+</nav>
+
 <main>
   <div class="container-fluid">
     <div class="container-fluid py-4">
@@ -47,4 +56,25 @@
   </div>
 </main>
 </body>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(event) {
+  var generatedAt = new Date("{{ generated_at }}Z");
+
+  function refreshGeneratedStr() {
+    var d = Date.now() - generatedAt;
+    var recently = d / 1000 / 60 / 60 <= 1;
+
+    document.getElementById("generatedAt").innerText =
+      generatedAt.getFullYear().toString().padStart(4, "0")
+       + "-" + generatedAt.getMonth().toString().padStart(2, "0")
+       + "-" + generatedAt.getDate().toString().padStart(2, "0")
+       + " " + generatedAt.getHours().toString().padStart(2, "0")
+       + ":" + generatedAt.getMinutes().toString().padStart(2, "0")
+       + ":" + generatedAt.getSeconds().toString().padStart(2, "0")
+       + " " + (recently ? "(recently)" : "(> hour ago)");
+  }
+  refreshGeneratedStr();
+});
+</script>
 </html>
