@@ -43,7 +43,7 @@ def fetch_prs(*, state: str, order_direction: str, repos: List[Tuple[str, str]])
 
 def filter_prs(*, users: List[str], prs: List[PR]) -> List[PR]:
     if users:
-        return [pr for pr in prs if pr["author"]["login"] in users]
+        return [pr for pr in prs if pr["author"] is not None and pr["author"].get("login") in users]
     else:
         return prs
 
